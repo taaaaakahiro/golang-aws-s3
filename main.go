@@ -13,6 +13,12 @@ import (
 	"github.com/oklog/ulid/v2"
 )
 
+var (
+	bucketName    = os.Getenv("BUCKET_NAME")
+	upObjectKey   = os.Getenv("UPLOAD_OBJECT_KEY")
+	downObjectKey = os.Getenv("DOWNLOAD_OBJECT_KEY")
+)
+
 func main() {
 	// sessionの作成
 	sess := session.Must(session.NewSessionWithOptions(session.Options{
@@ -20,7 +26,7 @@ func main() {
 	}))
 
 	scanner := bufio.NewScanner(os.Stdin)
-	fmt.Println("input No.")
+	fmt.Println("please input (1: download 2: upload)")
 	scanner.Scan()
 	in := scanner.Text()
 
@@ -32,21 +38,37 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-
-		bucketName := os.Getenv("BUCKET_NAME")
-		objectKey := os.Getenv("OBJECT_KEY")
-
 		// Downloaderを作成し、S3オブジェクトをダウンロード
 		downloader := s3manager.NewDownloader(sess)
 		n, err := downloader.Download(f, &s3.GetObjectInput{
 			Bucket: aws.String(bucketName),
-			Key:    aws.String(objectKey),
+			Key:    aws.String(downObjectKey),
 		})
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		log.Printf("download compleated: %d byte", n)
+
+	case "2":
+		// ファイルを開く
+		targetFilePath := "./upload/upload.txt"
+		file, err := os.Open(targetFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer file.Close()
+
+		// Uploaderを作成し、ローカルファイルをアップロード
+		uploader := s3manager.NewUploader(sess)
+		_, err = uploader.Upload(&s3manager.UploadInput{
+			Bucket: aws.String(bucketName),
+			Key:    aws.String(upObjectKey),
+			Body:   file,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+		log.Println("upload done")
 	default:
 		log.Printf("comman is not found")
 	}
