@@ -70,7 +70,7 @@ func main() {
 		}
 		log.Println("upload done")
 	default:
-		log.Printf("comman is not found")
+		log.Printf("command is not found")
 	}
 
 }
